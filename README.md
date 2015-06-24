@@ -55,13 +55,13 @@ In the above example, all values of velocity ranges, minimum velocity, and more 
 
 ###Example3 (Fully Manual):
 
-The user may choose to define any (or all) of the 'optional arguments' in the 'help' section.
+The user may choose to define any (or all) of the 'optional arguments' in the 'help' section. However, in order to make this work, the user MUST specify '-index man,' (see below)
 
 e.g.,
 
-`$> ./BALparams.py file zem -vlo 0 -vhi 35000`
+`$> ./BALparams.py file zem -index man -vlo 0 -vhi 35000`
 
-`$> ./BALparams.py file zem -vhi 35000 -zerr 0.056 -v 1000 -inc y`
+`$> ./BALparams.py file zem -index man -vhi 35000 -zerr 0.056 -v 1000 -inc y`
 
 And any 'optional parameters' you do not set will remain the default BI values from Weymann et al. 1991
 
@@ -69,7 +69,7 @@ And any 'optional parameters' you do not set will remain the default BI values f
 
 a. If you set '-index' to be one of the available pre-set indexes, it will override any additional optional parameters you set.
 
-b. The code does not validate your optional parameters. So if you define a '-vlo' that is higher in than the defined '-vhi,' the code will NOT yell at you.
+b. The code does not validate your optional parameters. So if you define a '-vlo' that is higher than the defined '-vhi,' the code will NOT yell at you.
 
 c. The code will print out the configuration of the
 variables each time it runs, so you will know what you set.

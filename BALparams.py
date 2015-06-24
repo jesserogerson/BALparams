@@ -7,7 +7,7 @@ Additional Credits: Patrick B. Hall,
                     Daniel E. Vandenberk
 
 This code calculates the BALnicity index of a quasar
-given some user-supplied spectrum
+given some user-supplied spectrum.
 
 In the literature, the definition of the BALnicity
 index has gone through many iterations. This code is
@@ -110,13 +110,15 @@ $> ./BALparams.py file zem -index AI450
 
 b) Fully manual
 The user may choose to define any (or all) of the
-'optional arguments' in the 'help' section.
+'optional arguments' in the 'help' section. However,
+in order to not defautlt to the original BI values, the
+user MUST specify '-index man,' (see below)
 
 e.g.,
 
-$> ./BALparams.py file zem -vlo 0 -vhi 35000
+$> ./BALparams.py file zem -index man -vlo 0 -vhi 35000
 
-$> ./BALparams.py file zem -vhi 35000 -zerr 0.056 -v 1000 -inc y
+$> ./BALparams.py file zem -inded man -vhi 35000 -zerr 0.056 -v 1000 -inc y
 
 And any 'optional parameters' you do not set will remain
 the default BI values.
@@ -140,10 +142,13 @@ HISTORY
 2015-05-30 - JAR - created
 2015-06-01 - JAR - major changes made
 2015-06-10 - JAR - condensed everything into a single
-                 - BALnicity function, which can adapt
-                 - to whatever measurement you want
+                   BALnicity function, which can adapt
+                   to whatever measurement you want
 2015-06-11 - JAR - changed name to BALparams.py
-                 - (from testBI.py)
+                   (from testBI.py)
+2015-06-24 - JAR - fixed bug regarding index selection
+                   in order to set parameters individually
+                   users must now set '-index man'
 ---------------------------------------------------------
 '''
 import numpy as np
@@ -163,7 +168,7 @@ siv_0=1396.76 #Ang
 #for validation later
 yes=set(['yes','y','YES','Y',True,1])
 no=set(['no','n','NO','N',False,0])
-indexes=set(['BI','BI_0','AIT','AI450','DI'])
+indexes=set(['BI','BI_0','AIT','AI450','DI','man'])
 
 def BALnicity(**kwargs):
     '''
