@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 '''
----------------------------------------------------------
+--------------------------------------------------------------------------------
 Author: Jesse A. Rogerson, rogerson@yorku.ca
 Additional Credits: Patrick B. Hall,
                     Catherine J. Grier
                     Daniel E. Vandenberk
 
-This code calculates the BALnicity index of a quasar
-given some user-supplied spectrum.
+This code calculates the BALnicity index of a quasar given some
+user-supplied spectrum.
 
-In the literature, the definition of the BALnicity
-index has gone through many iterations. This code is
-meant to be a one-stop-shop for all definitons. It allows
-the user to either
+In the literature, the definition of the BALnicity index has gone through
+many iterations. This code is meant to be a one-stop-shop for all definitons.
+It allows the user to either
     a) choose from a set of predefined indexes
     b) manually decide values of some or all of the
        parameters to define their own BALnicity Index
@@ -24,17 +23,16 @@ balidx = integrate(3000,25000,(1-f(v)/0.9)*C)
 f(v) = normalized flux as function of velocity from CIV center
 C = 1 when 1-f(v)/0.9 is continuously > 0 for > 2000km/s,
   = 0 otherwise -- so C is just a mask
-The integration starts at 3000km/s from the CIV center to
-avoid "associated" systems.  It ends at 25000 to avoid the
-SiIV region.  This is equivalent to masking out the
-< 3000km/s and > 25000km/s regions.
+
+The integration starts at 3000km/s from the CIV center to avoid "associated"
+systems.  It ends at 25000 to avoid the SiIV region.  This is equivalent to
+masking out the < 3000km/s and > 25000km/s regions.
 NB: this definition EXCLUDES all absorption prior to the
     2000km/s cut off.
 
-
 2. BI_0 - defined:
-A version of original BI that extends all the way to
-zero velocity on the lower limit of the integral
+A version of original BI that extends all the way to zero velocity on the
+lower limit of the integral
 All other rules are the same as BI
 Gibson et al., 2008, ApJ, 675, 985
 
@@ -126,30 +124,35 @@ the default BI values.
 NOTES:
 ----------
 
-a) If you set '-index' to be one of the available pre-set
-indexes, it will override any additional optional
-parameters you set.
+a) If you set '-index' to be one of the available pre-set indexes, it will
+override any additional optional parameters you set.
 
-b) The code does not validate your optional parameters.
-So if you define a '-vlo' that is higher in than the
-defined '-vhi,' the code will NOT yell at you.
+b) The code does not validate your optional parameters. So if you define a
+'-vlo' that is higher in than the defined '-vhi,' the code will NOT yell at you.
 
-c) The code will print out the configuration of the
-variables each time it runs, so you will know what you set.
+c) The code will print out the configuration of the variables each time it
+runs, so you will know what you set.
 
 HISTORY
----------------------------------------------------------
+--------------------------------------------------------------------------------
 2015-05-30 - JAR - created
 2015-06-01 - JAR - major changes made
-2015-06-10 - JAR - condensed everything into a single
-                   BALnicity function, which can adapt
-                   to whatever measurement you want
-2015-06-11 - JAR - changed name to BALparams.py
-                   (from testBI.py)
-2015-06-24 - JAR - fixed bug regarding index selection
-                   in order to set parameters individually
-                   users must now set '-index man'
----------------------------------------------------------
+2015-06-10 - JAR - condensed everything into a single BALnicity function,
+                   which can adapt to whatever measurement you want
+2015-06-11 - JAR - changed name to BALparams.py (from testBI.py)
+2015-06-24 - JAR - fixed bug regarding index selection.
+                   in order to set parameters individually users must now set:
+                   '-index man'
+2015-06-25 - JAR - The plotting function now colours in the parts of the
+                   spectrum that meets the BALnicity conditions with a blue
+                   shading.
+                 - The above required removing the step where we isolate only
+                   the velocity regime the users was interested in. As a result
+                   the code now includes the entire spectrum array for the
+                   whole calculation process. This DOES slow down the code a
+                   bit. Will be the focus of improvements later
+                 - added a Min Velocity of trough, just because.
+--------------------------------------------------------------------------------
 '''
 import numpy as np
 from sys import argv
@@ -226,13 +229,20 @@ def BALnicity(**kwargs):
     #Step5 - pull out ONLY the relevant velocity region
     #      - (set by vlolimit,vhilimit)
     #      - (decided it better to work with 1D lists from here on)
-    lam,flux,flux_err,vbal,dvbal=velCut(spectrum,vlolimit,vhilimit)
+    #lam,flux,flux_err,vbal,dvbal=velCut(spectrum,vlolimit,vhilimit)
+    #
+    #Chagned this step to:
+    #Step5 - individualize the spectrum into lists.
+    lam=cp.deepcopy(spectrum[:,0])
+    flux=cp.deepcopy(spectrum[:,1])
+    flux_err=cp.deepcopy(spectrum[:,2])
+    vbal=cp.deepcopy(spectrum[:,3])
+    dvbal=cp.deepcopy(spectrum[:,4])
 
     #Step6 - Calculate differential "equivalent width" (1-f(v)/0.9)
     #      - NB: you COULD change 0.9 by changing flim...
     vw=[1.0-(val/flim) for val in flux]
     ve=[(err/flim)**2 for err in flux_err]
-
     #Step7 - Calculate the Cvalues
     #     7a) First, the C values are calculated in the same manner as the BI.
     C=Cvalues(vbal,vlolimit,vhilimit,vmin,vw)
@@ -246,14 +256,9 @@ def BALnicity(**kwargs):
 
     #Step8 - determine begin/end lambda via C list
     #      - (this is for plotting purposes mostly)
-    start,finish=0,0
-    for i,c in enumerate(C):
-        if i>0 and i<len(C)-1:
-            if C[i-1]==0 and c==1:
-                finish=lam[i]
-            elif C[i+1]==0 and c==1:
-                start=lam[i]
-
+    start,finish=lam_0,0
+    finish = next((lam[i] for i,c in enumerate(C) if c==1),None)
+    start = next(lam[len(lam)-1-i] for i,c in enumerate(C[::-1]) if c==1)
     #Step9 - Print results
     print 'Results:'
     BI=0
@@ -269,13 +274,19 @@ def BALnicity(**kwargs):
     #
     # Find Vmax
     _v=[v for i,v in enumerate(vbal) if C[i] >0]
-    vmax=max(_v)
+    vmax,vmin=max(_v),min(_v)
     verr=zerr*lightspeed
     print 'Max Velocity = ',vmax,'+/-',verr
     #
     # Round Vmax to nearest 150km/s
     vmaxround = (150.*(int(vmax / 150.) + int(2*(vmax % 150.)/150.)))
     print 'Max Vmax = ',vmaxround,'(rounded to nearest 150 km/s)'
+    #
+    print 'Min Velocity = ',vmin,'+/-',verr
+    #
+    # Round Vmax to nearest 150km/s
+    vminround = (150.*(int(vmin / 150.) + int(2*(vmin % 150.)/150.)))
+    print 'Max Vmax = ',vminround,'(rounded to nearest 150 km/s)'
     #
     # Find \chi^2_{trough}
     rms=math.sqrt(np.mean(np.array([flux_err[i] for i,v in enumerate(C) if v==1])**2))
@@ -285,7 +296,7 @@ def BALnicity(**kwargs):
     print 'The reduced Chi^2 = ',chi2
     print '(Definied in Paris et al. 2012, A&A, 548, 66)'
     #Step10 - plot results
-    plotSpec(spectrum,start,finish,zem,flim,kwargs['out'],kwargs['pop'])
+    plotSpec(spectrum,vlolimit,vhilimit,start,finish,zem,flim,kwargs['out'],kwargs['pop'],C)
     print '--------------------------------------------------------'
     return
     #--------------------------------------------------------
@@ -309,7 +320,8 @@ def velCut(spectrum,vlolimit,vhilimit):
             flux_err.insert(0,flux_err_orig[i])
             vbal.insert(0,value)
             dvbal.insert(0,dvbal_orig[i])
-    return lam,flux,flux_err,vbal,dvbal
+    #return lam,flux,flux_err,vbal,dvbal
+    return lam_orig,flux_orig,flux_err_orig,vbal_orig,dvbal_orig
     #--------------------------------------------------------
 
 def Cpr(C_temp,vbal,vlolimit,vhilimit,vmin,vw):
@@ -401,11 +413,11 @@ def lam2vel(spec,rest=civ_0):
     return spec
     #--------------------------------------------------------
 
-def plotSpec(spec,s,f,zem,flim,out,p):
+def plotSpec(spec,vlolimit,vhilimit,s,f,zem,flim,filename,p,C):
     '''Plotting the spectrum along with the window of BALnicity'''
-    xlimits=[s-50,f+50]
+    #xlimits=[s-500,f+500]
+    xlimits=[1200,1600]
     ylimits=[0,2]
-
     fig = plt.figure()
     ax1=fig.add_subplot(111)
     plt.rc('text',usetex=True)
@@ -415,21 +427,28 @@ def plotSpec(spec,s,f,zem,flim,out,p):
     ax1.plot(spec[:,0],spec[:,1],'k',linewidth=1.0)
     #plotting the continuum at 1.0
     ax1.plot((1000,2000),(1,1),'k')
-    ax1.annotate('cont',xy=(((f-s)/2)+s,1.1),xytext=(((f-s)/2)+s,1.05))
+    #ax1.annotate('cont',xy=(((f-s)/2)+s,1.1),xytext=(((f-s)/2)+s,1.05))
     #plotting the 0.9 limit
     ax1.plot((1000,2000),(flim,flim),'k--')
-    ax1.annotate('0.9',xy=(s-20,0.8),xytext=(s-20,0.8))
+    #ax1.annotate('0.9',xy=(s-20,0.8),xytext=(s-20,0.8))
 
     #vertical lines on BAL limits
-    ax1.plot((s,s),(0,4),'r',linewidth=2.0)
+    ax1.plot((s,s),(0,4),'r--',linewidth=1.0)
     ax1.annotate('stop',xy=(s-8,0.4),color='r',xytext=(s-8,0.4))
-    ax1.plot((f,f),(0,4),'r',linewidth=2.0)
+    ax1.plot((f,f),(0,4),'r--',linewidth=1.0)
     ax1.annotate('start',xy=(f+5,0.4),color='r',xytext=(f+5,0.4))
+    ax1.plot((vlolimit,vlolimit),(0,4),'--')
+    ax1.plot((vhilimit,vhilimit),(0,4),'--')
     #plt.plot((civ_0,civ_0),(0,4),'k--')
+    C=np.array(C)
+    #ax1.fill_between(spec[:,0],spec[:,1],0.9, where=(C==1))
+    ax1.fill_between(spec[:,0],spec[:,1],0.9, where=(C==1))
+
     ax1.set_xlim(xlimits[0],xlimits[1])
     ax1.set_ylim(ylimits[0],ylimits[1])
     ax1.set_ylabel('Normalized Flux Density')
     ax1.set_xlabel('Rest-frame Wavelength \AA')
+    ax1.set_yticks((0.0,0.5,1.0,1.5,2.0,flim))
 
     #2nd axis
     ax2=ax1.twiny()
@@ -438,7 +457,6 @@ def plotSpec(spec,s,f,zem,flim,out,p):
     ax2.set_xlabel('Observed Wavelength (\AA)')
     ax2.xaxis.set_minor_locator(MultipleLocator(50))
 
-    filename=out
     plt.savefig(filename)
     print 'Saved a figure for you called:',filename
     if p in yes:
