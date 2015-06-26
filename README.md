@@ -74,6 +74,17 @@ b. The code does not validate your optional parameters. So if you define a '-vlo
 c. The code will print out the configuration of the
 variables each time it runs, so you will know what you set.
 
+### Example Plot:
+
+Along with the script itself, an example output plot is provided named 'BALplot.eps' and included here. The plot was created using the following command:
+
+`
+$> BALparams.py spectrum.dat 2.5 -index man -vlo 0 -vhi 60000 -v 450 -inc y -out BALplot.png`
+
+![BALplot](BALplot.png =600x)
+The shaded in blue regions are the portions of the spectrum that meet the BALnicity criteria as stipulated on the command line.
+
+
 ### Installation
 
 No Installation needed, just download and execute script.
