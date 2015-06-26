@@ -152,6 +152,8 @@ HISTORY
                    whole calculation process. This DOES slow down the code a
                    bit. Will be the focus of improvements later
                  - added a Min Velocity of trough, just because.
+2015-06-26 - JAR - was crashing if BALnicity was equal=0. added an error-catch
+                   to make sure it doesn't crash when this happens
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -258,45 +260,49 @@ def BALnicity(**kwargs):
     #      - (this is for plotting purposes mostly)
     start,finish=lam_0,0
     finish = next((lam[i] for i,c in enumerate(C) if c==1),None)
-    start = next(lam[len(lam)-1-i] for i,c in enumerate(C[::-1]) if c==1)
+    start = next((lam[len(lam)-1-i] for i,c in enumerate(C[::-1]) if c==1),None)
     #Step9 - Print results
     print 'Results:'
-    BI=0
-    errBI=0
-    for i,v in enumerate(vbal):
-        BI+=vw[i]*C[i]*dvbal[i]
-        errBI+=ve[i]*C[i]*dvbal[i]
-    print 'BALnicity index = ',BI,'+/-',math.sqrt(errBI),' (km/s)'
-    #
-    # Round to nearest 100 km/s
-    BIround = (100.*(int(BI / 100.) + int(2*(BI % 100.)/100.)))
-    print 'BALnicity index = ',BIround,' (rounded to nearest 100km/s)'
-    #
-    # Find Vmax
-    _v=[v for i,v in enumerate(vbal) if C[i] >0]
-    vmax,vmin=max(_v),min(_v)
-    verr=zerr*lightspeed
-    print 'Max Velocity = ',vmax,'+/-',verr
-    #
-    # Round Vmax to nearest 150km/s
-    vmaxround = (150.*(int(vmax / 150.) + int(2*(vmax % 150.)/150.)))
-    print 'Max Vmax = ',vmaxround,'(rounded to nearest 150 km/s)'
-    #
-    print 'Min Velocity = ',vmin,'+/-',verr
-    #
-    # Round Vmax to nearest 150km/s
-    vminround = (150.*(int(vmin / 150.) + int(2*(vmin % 150.)/150.)))
-    print 'Max Vmax = ',vminround,'(rounded to nearest 150 km/s)'
-    #
-    # Find \chi^2_{trough}
-    rms=math.sqrt(np.mean(np.array([flux_err[i] for i,v in enumerate(C) if v==1])**2))
-    arr=[((1-flux[i])/rms)**2 for i,v in enumerate(C) if v==1]
-    N=len(arr)
-    chi2=(1./N)*math.fsum(arr)
-    print 'The reduced Chi^2 = ',chi2
-    print '(Definied in Paris et al. 2012, A&A, 548, 66)'
-    #Step10 - plot results
-    plotSpec(spectrum,vlolimit,vhilimit,start,finish,zem,flim,kwargs['out'],kwargs['pop'],C)
+    if 1 in C:
+        BI=0
+        errBI=0
+        for i,v in enumerate(vbal):
+            BI+=vw[i]*C[i]*dvbal[i]
+            errBI+=ve[i]*C[i]*dvbal[i]
+        print 'BALnicity index = ',BI,'+/-',math.sqrt(errBI),' (km/s)'
+        #
+        # Round to nearest 100 km/s
+        BIround = (100.*(int(BI / 100.) + int(2*(BI % 100.)/100.)))
+        print 'BALnicity index = ',BIround,' (rounded to nearest 100km/s)'
+        #
+        # Find Vmax
+        _v=[v for i,v in enumerate(vbal) if C[i] >0]
+        vmax,vmin=max(_v),min(_v)
+        verr=zerr*lightspeed
+        print 'Max Velocity = ',vmax,'+/-',verr
+        #
+        # Round Vmax to nearest 150km/s
+        vmaxround = (150.*(int(vmax / 150.) + int(2*(vmax % 150.)/150.)))
+        print 'Max Vmax = ',vmaxround,'(rounded to nearest 150 km/s)'
+        #
+        print 'Min Velocity = ',vmin,'+/-',verr
+        #
+        # Round Vmax to nearest 150km/s
+        vminround = (150.*(int(vmin / 150.) + int(2*(vmin % 150.)/150.)))
+        print 'Max Vmax = ',vminround,'(rounded to nearest 150 km/s)'
+        #
+        # Find \chi^2_{trough}
+        rms=math.sqrt(np.mean(np.array([flux_err[i] for i,v in enumerate(C) if v==1])**2))
+        arr=[((1-flux[i])/rms)**2 for i,v in enumerate(C) if v==1]
+        N=len(arr)
+        chi2=(1./N)*math.fsum(arr)
+        print 'The reduced Chi^2 = ',chi2
+        print '(Definied in Paris et al. 2012, A&A, 548, 66)'
+        #Step10 - plot results
+        plotSpec(spectrum,vlolimit,vhilimit,start,finish,zem,flim,kwargs['out'],kwargs['pop'],C)
+    else:
+        print 'BALnicity index = 0.0 +/- 0.0'
+        print 'Must not be a BAL?'
     print '--------------------------------------------------------'
     return
     #--------------------------------------------------------
