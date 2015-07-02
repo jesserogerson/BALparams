@@ -81,7 +81,8 @@ To RUN on DEFAULT mode:
 ----------
 The only required inputs from the user are:
 file: an ASCII spectrum of a quasar. It should be normalized
-      to avoid bad pixels. It should also be in the rest-frame.
+      to avoid bad pixels. It should be in the observed frame.
+      (it will be deredshifted in-program)
       the first three columns must be:
             #wavelength flux flux_err
 zem:  The Redshift of the quasar

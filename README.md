@@ -31,7 +31,9 @@ This will output the various REQUIRED or 'positional arguments' as well as the v
 ###Example1 (The Default Execution):
 The only required inputs (or positional arguments) from the user are:
 
-**file**: An ASCII spectrum of a quasar. It should be normalized to avoid bad pixels. It should also be in the rest-frame. The first three columns must be: #wavelength flux flux_err
+**file**: An ASCII spectrum of a quasar. It should be normalized to avoid bad
+pixels. It should be in the observed frame (it will be deredshifted in-program)
+The first three columns must be: #wavelength flux flux_err
 
 **zem**:  The Redshift of the quasar
 
