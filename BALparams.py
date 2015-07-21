@@ -2,8 +2,8 @@
 '''
 --------------------------------------------------------------------------------
 Author: Jesse A. Rogerson, rogerson@yorku.ca
-Additional Credits: Patrick B. Hall,
-                    Catherine J. Grier
+Additional Credits: Catherine J. Grier
+                    Patrick B. Hall,
                     Daniel E. Vandenberk
 
 This code calculates the BALnicity index of a quasar given some
@@ -55,27 +55,30 @@ FOR HELP:
 ----------
 $> ./BALparams.py -h
 
-usage: BALparams.py [-h] [-index INDEX] [-zerr ZERR] [-lam LAM]
-                         [-vlo VLO] [-vhi VHI] [-v V] [-f F] [-inc INC]
-                         [-out OUT] [-pop POP]
-                         file zem
+usage: BALparams.py [-h] [-index INDEX] [-zerr ZERR] [-lam LAM] [-vlo VLO]
+                    [-vhi VHI] [-v V] [-f F] [-inc INC] [-out OUT] [-pop POP]
+                    [-writeout WRITEOUT] [-smooth SMOOTH]
+                    file zem
 
 positional arguments:
   file          /path/to/deredshifted/normalized/ASCII/spectrum
   zem           redshift of target
 
 optional arguments:
-  -h, --help    show this help message and exit
-  -index INDEX  The BALnicity Index to be measure (BI, BIstar, AI450)
-  -zerr ZERR    error in the redshift of the target (default to 0.0)
-  -lam LAM      rest wavelength of BAL ion (default to CIV)
-  -vlo VLO      low velocity cut-off (default to 3000.0 km/s)
-  -vhi VHI      high velocity cut-off (default to 25000.0 km/s)
-  -v V          minimum continguously under f (default to 2000.0)
-  -f F          amount to stay under for v (default to 0.9)
-  -inc INC      Include absorption before v_min (y/n)? (default is no)
-  -out OUT      The name of the output plot (default BALplot.eps)
-  -pop POP      Do you want to have the plot pop-up (y/n)?(default is no)
+  -h, --help          show this help message and exit
+  -index INDEX        The BALnicity Index to be measure (BI, BI_0, AIT, AI450)
+  -zerr ZERR          error in the redshift of the target (default to 0.0)
+  -lam LAM            rest wavelength of BAL ion (default to CIV)
+  -vlo VLO            low velocity cut-off (default to 3000.0 km/s)
+  -vhi VHI            high velocity cut-off (default to 25000.0 km/s)
+  -v V                minimum continguously under f (default to 2000.0)
+  -f F                amount to stay under for v (default to 0.9)
+  -inc INC            Include absorption before v_min (y/n)? (default is no)
+  -out OUT            The name of the output plot (default BALplot.eps)
+  -pop POP            Do you want to have the plot pop-up (y/n)?(default is no)
+  -writeout WRITEOUT  The name of output file (default is BAL_BI.dat
+  -smooth SMOOTH      The amount of smoothing to be applied to the spectra
+                      (default is no smoothing)
 
 To RUN on DEFAULT mode:
 ----------
@@ -116,7 +119,7 @@ user MUST specify '-index man,' (see below)
 e.g.,
 
 $> ./BALparams.py file zem -index man -vlo 0 -vhi 35000
-
+--or--
 $> ./BALparams.py file zem -inded man -vhi 35000 -zerr 0.056 -v 1000 -inc y
 
 And any 'optional parameters' you do not set will remain
@@ -155,6 +158,9 @@ HISTORY
                  - added a Min Velocity of trough, just because.
 2015-06-26 - JAR - was crashing if BALnicity was equal=0. added an error-catch
                    to make sure it doesn't crash when this happens
+2015-07-21 - CJG - added a file output flag '-writeout'
+                 - added a smoothing flag '-smooth'. boxcar smoothing if
+                   requested by user.
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -198,6 +204,7 @@ def BALnicity(**kwargs):
     vmin=kwargs['v']
     flim=kwargs['f']
     inc=kwargs['inc']
+    smooth = kwargs['smooth']
 
     #Step2 - if they specified a BI, then override their options
     if measure=='BI':
@@ -237,8 +244,13 @@ def BALnicity(**kwargs):
     #Chagned this step to:
     #Step5 - individualize the spectrum into lists.
     lam=cp.deepcopy(spectrum[:,0])
-    flux=cp.deepcopy(spectrum[:,1])
-    flux_err=cp.deepcopy(spectrum[:,2])
+    if smooth > 0:
+        f2 = cp.deepcopy(spectrum[:,1])
+        flux=SmoothBoxCar(f2, smooth)
+        flux_err=cp.deepcopy(spectrum[:,2])
+    if smooth == 0:
+        flux=cp.deepcopy(spectrum[:,1])
+        flux_err=cp.deepcopy(spectrum[:,2])
     vbal=cp.deepcopy(spectrum[:,3])
     dvbal=cp.deepcopy(spectrum[:,4])
 
@@ -304,9 +316,27 @@ def BALnicity(**kwargs):
     else:
         print 'BALnicity index = 0.0 +/- 0.0'
         print 'Must not be a BAL?'
+        #Setting all values to 0 if BI = 0 so it can still be output to a file
+        #without crashing if there's no BAL.
+        BI, errBI, BIround, vmax, vmin, verr, vmaxround, vmin, vminround, chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+    #Write out results to a file.
+    #NB: Right now this just appends the results, so if the file already exists,
+    #it won't write over it-- it'll just add to it. Could be problematic.
+    outfile = open(kwargs['writeout'], 'a')
+    s = '%8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(BI, math.sqrt(errBI), BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+    outfile.write(s)
+    outfile.close()
     print '--------------------------------------------------------'
     return
     #--------------------------------------------------------
+
+def SmoothBoxCar(x,N):
+    '''
+    BoxCar smoothing function, optional
+    '''
+    boxcar=np.ones(N)
+    return convolve(x, boxcar/boxcar.sum())
 
 def velCut(spectrum,vlolimit,vhilimit):
     '''This function pulls out the relevant velocity range
@@ -487,6 +517,8 @@ parser.add_argument('-f', type=float, default=0.9, help='amount to stay under fo
 parser.add_argument('-inc', type=str, default='n', help='Include absorption before v_min (y/n)? (default is no) ')
 parser.add_argument('-out', type=str, default='BALplot.eps', help='The name of the output plot (default BALplot.eps)')
 parser.add_argument('-pop', type=str, default='n', help='Do you want to have the plot pop-up (y/n)?(default is no)')
+parser.add_argument('-writeout', type=str, default='BAL_BI.dat', help='The name of output file (default is BAL_BI.dat')
+parser.add_argument('-smooth', type=int, default = 0, help='The amount of smoothing to be applied to the spectra (default is no smoothing)')
 kwargs=vars(parser.parse_args())
 
 BALnicity(**kwargs)
