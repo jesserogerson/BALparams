@@ -161,6 +161,8 @@ HISTORY
 2015-07-21 - CJG - added a file output flag '-writeout'
                  - added a smoothing flag '-smooth'. boxcar smoothing if
                    requested by user.
+2015-09-02 - JAR - error found in def Cpr(): (reported by CJG)
+                 - fixed.
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -370,19 +372,16 @@ def Cpr(C_temp,vbal,vlolimit,vhilimit,vmin,vw):
     #for > vmin km/s; C' is set to 0 for the first vmin km/s.
     #--------------------------------------------------------
     '''
-    Cprime=C_temp
-    i=len(vbal)-1
-    for v in reversed(vbal):
-        if v>vlolimit and v<(vhilimit-vmin):
-            __vbal=np.float64(vhilimit)-vbal
-            _vbal=__vbal[i]-__vbal
-            _vw=[vw[j] for j,temp in enumerate(_vbal) if temp>=0 and temp<=vmin]
-            if min(_vw)>0:
+    #works on the premise:
+    #if the value of the Carray was 1 previously, and the next
+    #continuum value is below the limit, then the next value in
+    #the Carray should be a 1 one. If it isn't... change it.
+    Cprime=cp.deepcopy(C_temp)
+    for i,v in enumerate(vbal):
+        if v>vlolimit and v<vhilimit:
+            if Cprime[i-1]==1 and vw[i]>0.0 and vw[i]<1.0:
                 Cprime[i]=1
-            _vw=[vw[j] for j,temp in enumerate(_vbal) if temp>=(-0.5*vmin) and temp<=(0.5*vmin)]
-            if min(_vw)>0:
-                Cprime[i]=1
-        i-=1
+            print v,Cprime[i],vw[i]
     return Cprime
 
 def Cvalues(vbal,vlolimit,vhilimit,vmin,vw):
