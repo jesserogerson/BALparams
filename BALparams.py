@@ -161,8 +161,16 @@ HISTORY
 2015-07-21 - CJG - added a file output flag '-writeout'
                  - added a smoothing flag '-smooth'. boxcar smoothing if
                    requested by user.
-2015-09-02 - JAR - error found in def Cpr(): (reported by CJG)
-                 - fixed.
+2015-09-02 - JAR - fixed error found in def Cpr(): (reported by CJG)
+2015-09-03 - CJG - added 'multiple trough' functionality
+                 - now reports how many troughs there are, what their individual
+                   BALnicities are. Still reports the total as well.
+2015-09-03 - JAR - moved the actual BAL calc to a new function called 'BALcalc'
+                 - moved smoothing into the lam2vel() function
+2015-09-04 - JAR - modified 'multiple troughs' functionality
+                 - created new function troughRegions()
+                   it accepts a C array of 1's and 0's and tells you where
+                   the troughs are.
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -173,6 +181,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import copy as cp
 import argparse
+import string
+import os
+from scipy.ndimage.filters import convolve
 
 #global variables
 lightspeed=299792.458 #km/s
@@ -207,6 +218,7 @@ def BALnicity(**kwargs):
     flim=kwargs['f']
     inc=kwargs['inc']
     smooth = kwargs['smooth']
+    objName=os.path.splitext(kwargs['file'])[0]
 
     #Step2 - if they specified a BI, then override their options
     if measure=='BI':
@@ -230,115 +242,151 @@ def BALnicity(**kwargs):
     if inc in yes:
         print 'Including absorption from before',vmin
     else:
-        print 'Only including absorption AFTER', vmin
+        print 'Only including absorption AFTER',vmin
     print '-'
+
     #Step3 - switch to rest-frame
     spectrum[:,0]=spectrum[:,0]/(1.+zem)
 
-    #Step4 - Convert spectrum to velocity from CIV
-    spectrum=lam2vel(spectrum,civ_0)
+    #Step4 - Convert spectrum to velocity from CIV, smooth if requested
+    spectrum=lam2vel(spectrum,smooth,civ_0)
 
     #Step5 - pull out ONLY the relevant velocity region
     #      - (set by vlolimit,vhilimit)
     #      - (decided it better to work with 1D lists from here on)
-    #lam,flux,flux_err,vbal,dvbal=velCut(spectrum,vlolimit,vhilimit)
-    #
-    #Chagned this step to:
+
     #Step5 - individualize the spectrum into lists.
     lam=cp.deepcopy(spectrum[:,0])
-    if smooth > 0:
-        f2 = cp.deepcopy(spectrum[:,1])
-        flux=SmoothBoxCar(f2, smooth)
-        flux_err=cp.deepcopy(spectrum[:,2])
-    if smooth == 0:
-        flux=cp.deepcopy(spectrum[:,1])
-        flux_err=cp.deepcopy(spectrum[:,2])
+    flux=cp.deepcopy(spectrum[:,1])
+    flux_err=cp.deepcopy(spectrum[:,2])
     vbal=cp.deepcopy(spectrum[:,3])
     dvbal=cp.deepcopy(spectrum[:,4])
 
     #Step6 - Calculate differential "equivalent width" (1-f(v)/0.9)
-    #      - NB: you COULD change 0.9 by changing flim...
-    vw=[1.0-(val/flim) for val in flux]
+    vw=[1.0-(val/flim) for val in flux] #allowable range: 0 < vw < 1.0
     ve=[(err/flim)**2 for err in flux_err]
-    #Step7 - Calculate the Cvalues
-    #     7a) First, the C values are calculated in the same manner as the BI.
-    C=Cvalues(vbal,vlolimit,vhilimit,vmin,vw)
-    #     7b) This is only done for AI450 at the moment
-    #      7b Second, C' values are calculated by redoing this from high v to low.
-    #         using the SAME C array, and writing over/changing it as needed
-    #      - C' is 1 or 0 -- 1 if absorption < $frac*continuum contiguously
-    #        for > vmin km/s; C' is set to 0 for the first vmin km/s.
-    if measure=='AI450' or kwargs['inc'] in yes:
-        C=Cpr(C,vbal,vlolimit,vhilimit,vmin,vw)
 
-    #Step8 - determine begin/end lambda via C list
-    #      - (this is for plotting purposes mostly)
-    start,finish=lam_0,0
-    finish = next((lam[i] for i,c in enumerate(C) if c==1),None)
-    start = next((lam[len(lam)-1-i] for i,c in enumerate(C[::-1]) if c==1),None)
-    #Step9 - Print results
-    print 'Results:'
-    if 1 in C:
-        BI=0
-        errBI=0
-        for i,v in enumerate(vbal):
-            BI+=vw[i]*C[i]*dvbal[i]
-            errBI+=ve[i]*C[i]*dvbal[i]
-        print 'BALnicity index = ',BI,'+/-',math.sqrt(errBI),' (km/s)'
-        #
-        # Round to nearest 100 km/s
-        BIround = (100.*(int(BI / 100.) + int(2*(BI % 100.)/100.)))
-        print 'BALnicity index = ',BIround,' (rounded to nearest 100km/s)'
-        #
-        # Find Vmax
-        _v=[v for i,v in enumerate(vbal) if C[i] >0]
-        vmax,vmin=max(_v),min(_v)
-        verr=zerr*lightspeed
-        print 'Max Velocity = ',vmax,'+/-',verr
-        #
-        # Round Vmax to nearest 150km/s
-        vmaxround = (150.*(int(vmax / 150.) + int(2*(vmax % 150.)/150.)))
-        print 'Max Vmax = ',vmaxround,'(rounded to nearest 150 km/s)'
-        #
-        print 'Min Velocity = ',vmin,'+/-',verr
-        #
-        # Round Vmax to nearest 150km/s
-        vminround = (150.*(int(vmin / 150.) + int(2*(vmin % 150.)/150.)))
-        print 'Max Vmax = ',vminround,'(rounded to nearest 150 km/s)'
-        #
-        # Find \chi^2_{trough}
-        rms=math.sqrt(np.mean(np.array([flux_err[i] for i,v in enumerate(C) if v==1])**2))
-        arr=[((1-flux[i])/rms)**2 for i,v in enumerate(C) if v==1]
-        N=len(arr)
-        chi2=(1./N)*math.fsum(arr)
-        print 'The reduced Chi^2 = ',chi2
-        print '(Definied in Paris et al. 2012, A&A, 548, 66)'
+    #Step7 - Calculate the Cvalues
+    C,regions=Cvalues(vbal,vlolimit,vhilimit,vmin,vw) #first pass
+    #redo the C array if we're including stuff BEFORE vmin cutoff
+    if measure=='AI450' or kwargs['inc'] in yes:
+        C,regions=Cpr(C,vbal,vlolimit,vhilimit,vmin,vw)
+
+    #Step8 - Determine how many troughs there are!
+    #      - and make a trough dictionary
+    numTroughs= len(regions) #how many troughs?
+    troughLimits=[vbal[reg].tolist() for reg in regions] #finds the values in vbal of those differences
+    print 'Number of BAL troughs found: ', numTroughs
+    troughDict={} #dictionary helps keep of track of stuff
+    letterList=list(string.ascii_uppercase)
+    count=0
+    for t in troughLimits:
+        troughDict[letterList[count]]=t
+        count+=1
+
+    #Step9 - Print Results
+    if numTroughs>0:
+        for t in troughDict:
+            # Determine begin/end velocity (this is for plotting purposes mostly)
+            start,finish=troughDict[t][0], troughDict[t][1]
+            #Pull out the region of this specific trough
+            region = np.where(np.logical_and(vbal <= start, vbal >= finish))
+            vbalNew = vbal[region]
+            CNew = np.ones(np.size(region))
+            vwNew = np.array(vw)[region]
+            dvbalNew = np.array(dvbal)[region]
+            veNew = np.array(ve)[region]
+            fluxNew = np.array(flux)[region]
+            flux_errNew = np.array(flux_err)[region]
+
+            #use BALcalc() to find all values of interest
+            label=objName+' '+t
+            BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,chi2=BALcalc(label,vbalNew,CNew,vwNew,dvbalNew,veNew,fluxNew,flux_errNew,zerr)
+            print '*Writing results for trough',t,'to file'
+            #Write out results to a file.
+            #NB: Right now this just appends the results, so if the file already exists,
+            #it won't write over it-- it'll just add to it. Could be problematic.
+            label=objName
+            outfile = open(kwargs['writeout'], 'a')
+            s = '%s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+            outfile.write(s)
+            outfile.close()
+
+        #do BALcalc() on the WHOLE vel range as well
+        label=objName+' TOTAL'
+        BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,chi2=BALcalc(label,vbal,C,vw,dvbal,ve,flux,flux_err,zerr)
+        print '*Writing results for TOTAL BAL to file'
+        outfile = open(kwargs['writeout'], 'a')
+        s = '%s      %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+        outfile.write(s)
+        outfile.close()
+
         #Step10 - plot results
-        plotSpec(spectrum,vlolimit,vhilimit,start,finish,zem,flim,kwargs['out'],kwargs['pop'],C)
-    else:
+        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,kwargs['out'],kwargs['pop'],C,troughDict)
+
+    else:#the case where no troughs were found
         print 'BALnicity index = 0.0 +/- 0.0'
         print 'Must not be a BAL?'
         #Setting all values to 0 if BI = 0 so it can still be output to a file
         #without crashing if there's no BAL.
-        BI, errBI, BIround, vmax, vmin, verr, vmaxround, vmin, vminround, chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-
-    #Write out results to a file.
-    #NB: Right now this just appends the results, so if the file already exists,
-    #it won't write over it-- it'll just add to it. Could be problematic.
-    outfile = open(kwargs['writeout'], 'a')
-    s = '%8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(BI, math.sqrt(errBI), BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
-    outfile.write(s)
-    outfile.close()
+        BI,errBI,BIround,vmax,vmin,verr,vmaxround,vmin,vminround,chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        #Write out results to a file.
+        #NB: Right now this just appends the results, so if the file already exists,
+        #it won't write over it-- it'll just add to it. Could be problematic.
+        label=objName+' TOTAL'
+        outfile = open(kwargs['writeout'], 'a')
+        s = '%s      %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+        outfile.write(s)
+        outfile.close()
     print '--------------------------------------------------------'
     return
     #--------------------------------------------------------
 
-def SmoothBoxCar(x,N):
+def BALcalc(name,vbal,C,vw,dvbal,ve,flux,flux_err,zerr):
+    '''
+    This is where the actual BI and other associated
+    values are calculated.
+    '''
+    print '-----'
+    print 'Here are the results for trough ',name
+    BI=0
+    errBI=0
+    for i,v in enumerate(vbal):
+        BI+=vw[i]*C[i]*dvbal[i]
+        errBI+=ve[i]*C[i]*dvbal[i]
+    print 'BALnicity index = ',BI,'+/-',math.sqrt(errBI),' (km/s)'
+    #
+    # Round to nearest 100 km/s
+    BIround = (100.*(int(BI / 100.) + int(2*(BI % 100.)/100.)))
+    print 'BALnicity index = ',BIround,' (rounded to nearest 100km/s)'
+    #
+    # Find Vmax,Vmin
+    _v=[v for i,v in enumerate(vbal) if C[i] >0]
+    vmax,vmin=max(_v),min(_v)
+    verr=zerr*lightspeed
+    print 'Max Velocity = ',vmax,'+/-',verr
+    vmaxround = (150.*(int(vmax / 150.) + int(2*(vmax % 150.)/150.)))
+    print 'Min Velocity = ',vmin,'+/-',verr
+    vminround = (150.*(int(vmin / 150.) + int(2*(vmin % 150.)/150.)))
+    #
+    # Find \chi^2_{trough}
+    rms=math.sqrt(np.mean(np.array([flux_err[i] for i,v in enumerate(C) if v==1])**2))
+    arr=[((1-flux[i])/rms)**2 for i,v in enumerate(C) if v==1]
+    N=len(arr)
+    chi2=(1./N)*math.fsum(arr)
+    print 'The reduced Chi^2 = ',chi2
+    print '(Definied in Paris et al. 2012, A&A, 548, 66)'
+    print '-----'
+    return BI, math.sqrt(errBI), BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2
+    #--------------------------------------------------------
+
+def smoothBoxCar(x,N):
     '''
     BoxCar smoothing function, optional
     '''
     boxcar=np.ones(N)
     return convolve(x, boxcar/boxcar.sum())
+    #--------------------------------------------------------
 
 def velCut(spectrum,vlolimit,vhilimit):
     '''This function pulls out the relevant velocity range
@@ -381,8 +429,8 @@ def Cpr(C_temp,vbal,vlolimit,vhilimit,vmin,vw):
         if v>vlolimit and v<vhilimit:
             if Cprime[i-1]==1 and vw[i]>0.0 and vw[i]<1.0:
                 Cprime[i]=1
-            print v,Cprime[i],vw[i]
-    return Cprime
+    return Cprime,troughRegions(Cprime)
+    #--------------------------------------------------------
 
 def Cvalues(vbal,vlolimit,vhilimit,vmin,vw):
     '''
@@ -407,10 +455,32 @@ def Cvalues(vbal,vlolimit,vhilimit,vmin,vw):
             #therefore set C to 1
             if min(_vw)>0:
                 C[i]=1
-    return C
+    return C,troughRegions(C)
     #--------------------------------------------------------
 
-def lam2vel(spec,rest=civ_0):
+def troughRegions(C):
+    '''
+    Finds the sections of the C array that are 1's, returns
+    a 2D-list, where each entry is the start/stop of a trough
+    '''
+    start,stop=0,0
+    s=False
+    regions=[]
+    for i,c in enumerate(C):
+        if c==1 and s==False:
+            start=i
+            s=True
+        elif c==0 and s==True:
+            stop=i-1
+            s=False
+            regions.append([start,stop])
+        if s==True and i==len(C)-1:
+            stop=i
+            regions.append([start,stop])
+    return regions
+    #--------------------------------------------------------
+
+def lam2vel(spec,smooth,rest=civ_0):
     '''
     #--------------------------------------------------------
     #Function takes a spectrum (lam,flux,fluxerr) and returns
@@ -445,59 +515,66 @@ def lam2vel(spec,rest=civ_0):
     #in order to concatenate must reshape
     spec=np.concatenate((spec,np.reshape(vbal,(len(vbal),1)),
                     np.reshape(dvbal,(len(dvbal),1))),axis=1)
+    #smooth if asked for
+    if smooth > 0:
+        spec[:,1]=smoothBoxCar(spec[:,1], smooth)
     #return the original spectrum, with two more columns
     return spec
     #--------------------------------------------------------
 
-def plotSpec(spec,vlolimit,vhilimit,s,f,zem,flim,filename,p,C):
+def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     '''Plotting the spectrum along with the window of BALnicity'''
-    #xlimits=[s-500,f+500]
-    xlimits=[1200,1600]
-    ylimits=[0,2]
-    fig = plt.figure()
-    ax1=fig.add_subplot(111)
     plt.rc('text',usetex=True)
     plt.rc('font',family='sans-serif')
+    fig = plt.figure()
+    ax1=fig.add_subplot(1,1,1)
+    xlimits=[1400,1600]
+    ylimits=[0,2]
 
-    #split into two x-axes (for rest vs. observed)
-    ax1.plot(spec[:,0],spec[:,1],'k',linewidth=1.0)
-    #plotting the continuum at 1.0
-    ax1.plot((1000,2000),(1,1),'k')
-    #ax1.annotate('cont',xy=(((f-s)/2)+s,1.1),xytext=(((f-s)/2)+s,1.05))
-    #plotting the 0.9 limit
-    ax1.plot((1000,2000),(flim,flim),'k--')
-    #ax1.annotate('0.9',xy=(s-20,0.8),xytext=(s-20,0.8))
-
-    #vertical lines on BAL limits
-    ax1.plot((s,s),(0,4),'r--',linewidth=1.0)
-    ax1.annotate('stop',xy=(s-8,0.4),color='r',xytext=(s-8,0.4))
-    ax1.plot((f,f),(0,4),'r--',linewidth=1.0)
-    ax1.annotate('start',xy=(f+5,0.4),color='r',xytext=(f+5,0.4))
-    ax1.plot((vlolimit,vlolimit),(0,4),'--')
-    ax1.plot((vhilimit,vhilimit),(0,4),'--')
-    #plt.plot((civ_0,civ_0),(0,4),'k--')
-    C=np.array(C)
-    #ax1.fill_between(spec[:,0],spec[:,1],0.9, where=(C==1))
-    ax1.fill_between(spec[:,0],spec[:,1],0.9, where=(C==1))
-
+    #top axis - or axis 1
     ax1.set_xlim(xlimits[0],xlimits[1])
     ax1.set_ylim(ylimits[0],ylimits[1])
     ax1.set_ylabel('Normalized Flux Density')
     ax1.set_xlabel('Rest-frame Wavelength \AA')
-    ax1.set_yticks((0.0,0.5,1.0,1.5,2.0,flim))
+    #ax1.set_yticks((0.0,0.5,1.0,1.5,2.0,flim))
+
+    ax1.plot(spec[:,0],spec[:,1],'k',linewidth=1.0)
+    #plotting the continuum at 1.0
+    ax1.plot((1000,2000),(1,1),'k')
+    #plotting the 0.9 limit
+    ax1.plot((1000,2000),(flim,flim),'k--')
+    C=np.array(C)
+    ax1.fill_between(spec[:,0],spec[:,1],flim, where=(C==1))
+
+    #calculating analogus x boundary
+    minlambda=(xlimits[0]-civ_0)/civ_0
+    maxlambda=(xlimits[1]-civ_0)/civ_0
+    Rmin=1./(1+minlambda)
+    Rmax=1./(1+maxlambda)
+    vel_min=lightspeed*(Rmin**2-1)/(Rmin**2+1)
+    vel_max=lightspeed*(Rmax**2-1)/(Rmax**2+1)
 
     #2nd axis
+
     ax2=ax1.twiny()
-    ax2.set_xlim(xlimits[0]*(1+zem),xlimits[1]*(1+zem))
-    ax2.set_xticks([4400,4600,4800,5000,5200,5400])
-    ax2.set_xlabel('Observed Wavelength (\AA)')
-    ax2.xaxis.set_minor_locator(MultipleLocator(50))
+    ax2.set_xlim(vel_min,vel_max)
+    ax2.set_ylim(ylimits[0],ylimits[1])
+    ax2.set_xlabel('velocity (km/s)')
+
+    #ERROR - this doesn't seem to be plotting properly
+    #        another problem for another day
+    for t in troughDict:
+        ax2.annotate(t, xy=(troughDict[t][0],1.5),xytext=(troughDict[t][0],1.5))
+    #    #print troughDict[t]
+    #    ax2.plot([np.array(troughDict[t][0]),np.array(troughDict[t][0])], ylimits, color = 'r', marker = 'o')
+    #    ax2.plot([np.array(troughDict[t][1]),np.array(troughDict[t][1])], ylimits, color = 'r', marker = 'o')
 
     plt.savefig(filename)
     print 'Saved a figure for you called:',filename
     if p in yes:
         print '...Pushing figure to X11, popping up...'
         plt.show()
+
     return
     #--------------------------------------------------------
 
