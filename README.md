@@ -1,5 +1,5 @@
 #BALparams.py
-Author: Jesse A. Rogerson - jesserogerson.com
+Author: Jesse A. Rogerson, jesserogerson.com, rogerson@yorku.ca
 
 The code implementation was written by the above, but with helpful (and crucial) contributions from: **Catherine J. Grier, Patrick B. Hall, Daniel E. Vandenberk**
 

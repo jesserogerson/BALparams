@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 '''
 --------------------------------------------------------------------------------
-Author: Jesse A. Rogerson, rogerson@yorku.ca
+Author: Jesse A. Rogerson, jesserogerson.com, rogerson@yorku.ca
 Additional Credits: Catherine J. Grier
                     Patrick B. Hall,
                     Daniel E. Vandenberk
@@ -144,6 +144,7 @@ HISTORY
 2015-06-10 - JAR - condensed everything into a single BALnicity function,
                    which can adapt to whatever measurement you want
 2015-06-11 - JAR - changed name to BALparams.py (from testBI.py)
+2015-06-12 - JAR - original commit to github.com/jesserogerson
 2015-06-24 - JAR - fixed bug regarding index selection.
                    in order to set parameters individually users must now set:
                    '-index man'
@@ -581,7 +582,7 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
 #-------------------------------------------------------------------------------
 #read in from command line
 parser=argparse.ArgumentParser()
-parser.add_argument('file', type=str, help='/path/to/deredshifted/normalized/ASCII/spectrum')
+parser.add_argument('file', type=str, help='/path/to/normalized/ASCII/spectrum')
 parser.add_argument('zem', type=float, help='redshift of target')
 parser.add_argument('-index', type=str, default='BI', help='The BALnicity Index to be measure (BI, BI_0, AIT, AI450)')
 parser.add_argument('-zerr', type=float, default=0.0, help='error in the redshift of the target (default to 0.0)')
