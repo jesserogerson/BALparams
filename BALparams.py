@@ -172,6 +172,8 @@ HISTORY
                  - created new function troughRegions()
                    it accepts a C array of 1's and 0's and tells you where
                    the troughs are.
+2015-10-06 - JAR - added a spectra idenfifier (gem/sdss/boss) to the writeout
+                 - augmented current label in writeout
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -209,6 +211,8 @@ def BALnicity(**kwargs):
         sys.exit()
     #      - read in spectrum given on command line
     spectrum=np.genfromtxt(kwargs['file'],usecols=(0,1,2))
+    #find which survey spectrum is from
+    typ=kwargs['file'].split('.')[1]
     #      - set individual kwargs to variable names (easier)
     zem=kwargs['zem']
     zerr=kwargs['zerr']
@@ -307,18 +311,18 @@ def BALnicity(**kwargs):
             #Write out results to a file.
             #NB: Right now this just appends the results, so if the file already exists,
             #it won't write over it-- it'll just add to it. Could be problematic.
-            label=objName
+            label=objName[4:]
             outfile = open(kwargs['writeout'], 'a')
-            s = '%s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+            s = '%s     %s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
             outfile.write(s)
             outfile.close()
 
         #do BALcalc() on the WHOLE vel range as well
-        label=objName+' TOTAL'
+        label=objName[4:]+' TOTAL'
         BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,chi2=BALcalc(label,vbal,C,vw,dvbal,ve,flux,flux_err,zerr)
         print '*Writing results for TOTAL BAL to file'
         outfile = open(kwargs['writeout'], 'a')
-        s = '%s      %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
         outfile.write(s)
         outfile.close()
 
@@ -334,9 +338,9 @@ def BALnicity(**kwargs):
         #Write out results to a file.
         #NB: Right now this just appends the results, so if the file already exists,
         #it won't write over it-- it'll just add to it. Could be problematic.
-        label=objName+' TOTAL'
+        label=objName[4:]+' TOTAL'
         outfile = open(kwargs['writeout'], 'a')
-        s = '%s      %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
         outfile.write(s)
         outfile.close()
     print '--------------------------------------------------------'
