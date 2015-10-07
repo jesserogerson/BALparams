@@ -342,7 +342,7 @@ def BALnicity(**kwargs):
         #it won't write over it-- it'll just add to it. Could be problematic.
         label=objName[4:]+' TOTAL'
         outfile = open(kwargs['writeout'], 'a')
-        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
+        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f   %8.3f    %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
         outfile.write(s)
         outfile.close()
     print '--------------------------------------------------------'
