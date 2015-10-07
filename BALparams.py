@@ -336,7 +336,7 @@ def BALnicity(**kwargs):
         print 'Must not be a BAL?'
         #Setting all values to 0 if BI = 0 so it can still be output to a file
         #without crashing if there's no BAL.
-        BI,errBI,BIround,vmax,vmin,verr,vmaxround,vmin,vminround,lamMin,lamMax,chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        BI,errBI,BIround,vmax,vmin,verr,vmaxround,vmin,vminround,lamMin,lamMax,chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         #Write out results to a file.
         #NB: Right now this just appends the results, so if the file already exists,
         #it won't write over it-- it'll just add to it. Could be problematic.
