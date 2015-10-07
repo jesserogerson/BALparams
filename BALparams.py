@@ -329,9 +329,8 @@ def BALnicity(**kwargs):
         s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f      %8.3f     %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
         outfile.write(s)
         outfile.close()
-        print (kwargs['out'].split('.')[0]+typ+kwargs['out'].split('.')[1])
         #Step10 - plot results
-        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwargs['out'].split('.')[0]+typ+kwargs['out'].split('.')[1]),kwargs['pop'],C,troughDict)
+        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwargs['out'].split('.')[0]+typ+'.'+kwargs['out'].split('.')[1]),kwargs['pop'],C,troughDict)
 
     else:#the case where no troughs were found
         print 'BALnicity index = 0.0 +/- 0.0'
