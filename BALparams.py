@@ -174,6 +174,7 @@ HISTORY
                    the troughs are.
 2015-10-06 - JAR - added a spectra idenfifier (gem/sdss/boss) to the writeout
                  - augmented current label in writeout
+                 - added lambda ranges for BALs, helsp for EW later
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -301,28 +302,29 @@ def BALnicity(**kwargs):
             vwNew = np.array(vw)[region]
             dvbalNew = np.array(dvbal)[region]
             veNew = np.array(ve)[region]
+            lamNew = np.array(lam)[region]
             fluxNew = np.array(flux)[region]
             flux_errNew = np.array(flux_err)[region]
 
             #use BALcalc() to find all values of interest
             label=objName+' '+t
-            BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,chi2=BALcalc(label,vbalNew,CNew,vwNew,dvbalNew,veNew,fluxNew,flux_errNew,zerr)
+            BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,lamMin,lamMax,chi2=BALcalc(label,vbalNew,CNew,vwNew,dvbalNew,veNew,lamNew,fluxNew,flux_errNew,zerr)
             print '*Writing results for trough',t,'to file'
             #Write out results to a file.
             #NB: Right now this just appends the results, so if the file already exists,
             #it won't write over it-- it'll just add to it. Could be problematic.
             label=objName[4:]
             outfile = open(kwargs['writeout'], 'a')
-            s = '%s     %s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+            s = '%s     %s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %8.3f      %8.3f  %5.3f      \n'%(label,typ,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin,lamMax,chi2)
             outfile.write(s)
             outfile.close()
 
         #do BALcalc() on the WHOLE vel range as well
         label=objName[4:]+' TOTAL'
-        BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,chi2=BALcalc(label,vbal,C,vw,dvbal,ve,flux,flux_err,zerr)
+        BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,lamMin,lamMax,chi2=BALcalc(label,vbal,C,vw,dvbal,ve,lam,flux,flux_err,zerr)
         print '*Writing results for TOTAL BAL to file'
         outfile = open(kwargs['writeout'], 'a')
-        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f      %8.3f     %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
         outfile.write(s)
         outfile.close()
 
@@ -334,20 +336,20 @@ def BALnicity(**kwargs):
         print 'Must not be a BAL?'
         #Setting all values to 0 if BI = 0 so it can still be output to a file
         #without crashing if there's no BAL.
-        BI,errBI,BIround,vmax,vmin,verr,vmaxround,vmin,vminround,chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        BI,errBI,BIround,vmax,vmin,verr,vmaxround,vmin,vminround,lamMin,lamMax,chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         #Write out results to a file.
         #NB: Right now this just appends the results, so if the file already exists,
         #it won't write over it-- it'll just add to it. Could be problematic.
         label=objName[4:]+' TOTAL'
         outfile = open(kwargs['writeout'], 'a')
-        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2)
+        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
         outfile.write(s)
         outfile.close()
     print '--------------------------------------------------------'
     return
     #--------------------------------------------------------
 
-def BALcalc(name,vbal,C,vw,dvbal,ve,flux,flux_err,zerr):
+def BALcalc(name,vbal,C,vw,dvbal,ve,lam,flux,flux_err,zerr):
     '''
     This is where the actual BI and other associated
     values are calculated.
@@ -373,6 +375,9 @@ def BALcalc(name,vbal,C,vw,dvbal,ve,flux,flux_err,zerr):
     vmaxround = (150.*(int(vmax / 150.) + int(2*(vmax % 150.)/150.)))
     print 'Min Velocity = ',vmin,'+/-',verr
     vminround = (150.*(int(vmin / 150.) + int(2*(vmin % 150.)/150.)))
+    # Find lamMax, lamMin
+    _l=[l for i,l in enumerate(lam) if C[i] > 0]
+    lamMin,lamMax=min(_l),max(_l)
     #
     # Find \chi^2_{trough}
     rms=math.sqrt(np.mean(np.array([flux_err[i] for i,v in enumerate(C) if v==1])**2))
@@ -382,7 +387,7 @@ def BALcalc(name,vbal,C,vw,dvbal,ve,flux,flux_err,zerr):
     print 'The reduced Chi^2 = ',chi2
     print '(Definied in Paris et al. 2012, A&A, 548, 66)'
     print '-----'
-    return BI, math.sqrt(errBI), BIround, vmax, verr, vmaxround, vmin, verr, vminround, chi2
+    return BI, math.sqrt(errBI), BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2
     #--------------------------------------------------------
 
 def smoothBoxCar(x,N):
