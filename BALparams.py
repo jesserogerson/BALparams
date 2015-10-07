@@ -538,7 +538,7 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     plt.rc('font',family='sans-serif')
     fig = plt.figure()
     ax1=fig.add_subplot(1,1,1)
-    xlimits=[1400,1600]
+    xlimits=[1200,1600]
     ylimits=[0,2]
 
     #top axis - or axis 1
