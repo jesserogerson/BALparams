@@ -175,6 +175,8 @@ HISTORY
 2015-10-06 - JAR - added a spectra idenfifier (gem/sdss/boss) to the writeout
                  - augmented current label in writeout
                  - added lambda ranges for BALs, helsp for EW later
+2015-10-07 - JAR - fixed plotting issue. Now program creates individual BAL
+                   plots for each 'sdss','boss', or 'gem'
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -329,7 +331,7 @@ def BALnicity(**kwargs):
         outfile.close()
 
         #Step10 - plot results
-        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,kwargs['out'],kwargs['pop'],C,troughDict)
+        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwards['out'].split('.')[0]+typ+kwards['out'].split('.')[1]),kwargs['pop'],C,troughDict)
 
     else:#the case where no troughs were found
         print 'BALnicity index = 0.0 +/- 0.0'
