@@ -322,7 +322,7 @@ def BALnicity(**kwargs):
             outfile.close()
 
         #do BALcalc() on the WHOLE vel range as well
-        label=objName[4:]+' TOTAL'
+        label=objName[4:]
         BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,lamMin,lamMax,chi2=BALcalc(label,vbal,C,vw,dvbal,ve,lam,flux,flux_err,zerr)
         print '*Writing results for TOTAL BAL to file'
         outfile = open(kwargs['writeout'], 'a')
@@ -341,7 +341,7 @@ def BALnicity(**kwargs):
         #Write out results to a file.
         #NB: Right now this just appends the results, so if the file already exists,
         #it won't write over it-- it'll just add to it. Could be problematic.
-        label=objName[4:]+' TOTAL'
+        label=objName[4:]
         outfile = open(kwargs['writeout'], 'a')
         s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f   %8.3f    %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
         outfile.write(s)
