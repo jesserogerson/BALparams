@@ -325,7 +325,7 @@ def BALnicity(**kwargs):
         label=objName[4:]
         BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,lamMin,lamMax,chi2=BALcalc(label,vbal,C,vw,dvbal,ve,lam,flux,flux_err,zerr)
         print '*Writing results for TOTAL BAL to file'
-        outfile = open(kwargs['writeout'], 'a')
+        outfile = open('TOTAL_'+kwargs['writeout'], 'a')
         s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f      %8.3f     %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
         outfile.write(s)
         outfile.close()
