@@ -556,7 +556,7 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     ax1.plot((1000,2000),(flim,flim),'k--')
     C=np.array(C)
     ax1.fill_between(spec[:,0],spec[:,1],flim, where=(C==1))
-    ax1.annotate(filename,xy=(1275,(ylimits[1]*0.1)))
+    ax1.annotate(str(filename[-4:]),xy=(1275,(ylimits[1]*0.1)))
 
     #calculating analogus x boundary
     minlambda=(xlimits[0]-civ_0)/civ_0
