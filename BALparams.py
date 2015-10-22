@@ -178,6 +178,9 @@ HISTORY
 2015-10-07 - JAR - fixed plotting issue. Now program creates individual BAL
                    plots for each 'sdss','boss', or 'gem'
 2015-10-22 - JAR - forced the CIV global to 1545... will catch associated civ
+                 - added a new function EWcalc(). It calculates EW, centroid
+                   velocity, and average depth, of any trough identified.
+                 - removed the CIV global change to 1545. don't like it.
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -195,7 +198,7 @@ from scipy.ndimage.filters import convolve
 #global variables
 lightspeed=299792.458 #km/s
 civ_0=1548.202 #Ang
-civ_0=1545.000 #Ang - this will allow us to catch 'associated' systems
+#civ_0=1545.000 #Ang - this will allow us to catch 'associated' systems
 siv_0=1396.76 #Ang
 
 #for validation later
@@ -313,13 +316,14 @@ def BALnicity(**kwargs):
             #use BALcalc() to find all values of interest
             label=objName+' '+t
             BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,lamMin,lamMax,chi2=BALcalc(label,vbalNew,CNew,vwNew,dvbalNew,veNew,lamNew,fluxNew,flux_errNew,zerr)
+            label=objName[4:]
+            EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL=EWcalc(label,vmax,vmin,lamMin,lamMax,lam,flux,flux_err)
             print '*Writing results for trough',t,'to file'
             #Write out results to a file.
             #NB: Right now this just appends the results, so if the file already exists,
             #it won't write over it-- it'll just add to it. Could be problematic.
-            label=objName[4:]
             outfile = open(kwargs['writeout'], 'a')
-            s = '%s     %s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %8.3f      %8.3f  %5.3f      \n'%(label,typ,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin,lamMax,chi2)
+            s = '%s     %s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %8.3f      %8.3f  %5.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f     \n'%(label,typ,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin,lamMax,chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL)
             outfile.write(s)
             outfile.close()
 
@@ -339,17 +343,129 @@ def BALnicity(**kwargs):
         print 'Must not be a BAL?'
         #Setting all values to 0 if BI = 0 so it can still be output to a file
         #without crashing if there's no BAL.
-        BI,errBI,BIround,vmax,vmin,verr,vmaxround,vmin,vminround,lamMin,lamMax,chi2 = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        BI,errBI,BIround,vmax,vmin,verr,vmaxround,vmin,vminround,lamMin,lamMax,chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0
         #Write out results to a file.
         #NB: Right now this just appends the results, so if the file already exists,
         #it won't write over it-- it'll just add to it. Could be problematic.
         label=objName[4:]
         outfile = open(kwargs['writeout'], 'a')
-        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f   %8.3f    %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2)
+        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f   %8.3f    %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL)
         outfile.write(s)
         outfile.close()
     print '--------------------------------------------------------'
     return
+    #--------------------------------------------------------
+
+def EWcalc(name,vmax,vmin,lamMin,lamMax,lam,flux,flux_err):
+    '''
+    calculating various parameters: EW, average depth, etc.
+    '''
+    #BI,errBI,BIround,vmax,verr,vmaxround,vmin,verr,vminround,lamMin,lamMax,chi2
+    #what are the RLFs? will be used for
+    limits=[lamMin,lamMax]
+    parmFile='norm'+name+'.parm'
+    with open(parmFile,'r') as f:
+        s=f.readlines()[-1]
+    f.close()
+    line=s.strip().split('=')[1]
+    temp=map(float,line.split(','))
+    RLF=[[temp[0],temp[1]]]
+    for t in range(2,len(temp)-1,2):
+        RLF.insert(0,[temp[t],temp[t+1]])
+    #identify the indicies that reflect the given RLF windows
+    w=0
+    w=np.array([],dtype=int)
+    for bounds in RLF:
+        temp_w=[index for index,value in enumerate(lam) if value > bounds[0] and value < bounds[1]]
+        w=np.concatenate((w,temp_w))
+        temp_w=[]
+    print '------------------------------------------------------------'
+    print 'Measureing Equivalent Width'
+    print 'Trough Range:'+str(limits)
+    #print 'Corresponding velocity range: '+str(round(high_v,0))+' < v < '+str(round(low_v,0))
+    print 'Corresponding velocity range: '+str(round(vmax,0))+' < v < '+str(round(vmin,0))
+    print 'Corresponding velocity width: '+str(round(vmin-vmax,0))
+    print 'Step1: Measure the uncertainty in the w continuum flux'
+    print '       in the adjacent normalization windows (\DeltaFc)'
+    print 'Normalization windows:',RLF
+    temp_f=0.
+    temp_ferr=0.
+    number=len(w)
+    #Calculating the Mean and Uncertainty in the Mean
+    #using the Normalization windows
+    for i in w:
+        temp_f=temp_f+flux[i]#add up flux in each bin
+        temp_ferr=temp_ferr+(flux_err[i]**2)#add up uncertainy squared
+        number=number+1
+    meanFc=temp_f/number#calculate the mean
+    deltaFc=math.sqrt(temp_ferr/(number-1))#RMS noise of the distribution
+    deltaFc=deltaFc/math.sqrt(number)#the uncertainty of the mean
+    print '\Delta F_c = '+str(round(deltaFc,2))
+    print 'Step2: Measure EW and uncertainy on EW'
+    temp=0.
+    tempA=0.
+    tempB=0.
+    sigma_low=0.
+    low_avg=7
+    N_v=0.
+    vCent=0.
+    vCentWeight=0.
+    dBAL=0.
+    dBALdev=0.
+    pixWidth=0
+    cont=1.0
+    #Calculating values such as EW, lowest point, N_v etc.
+    #the actual measurement loop
+    for i in range(len(lam)):
+        if lam[i]>=limits[0] and lam[i]<=limits[1]:
+            #Measure of dBAL, average depth from normalized continuum
+            dBAL+=(1-flux[i])
+            pixWidth+=1
+            #Measure centroid velocity, weighted, cumulative
+            lambdatest=(lam[i]-civ_0)/civ_0
+            Rtest=1./(1+lambdatest)
+            veltest=lightspeed*(Rtest**2-1)/(Rtest**2+1)
+            vCent+=veltest*(1-flux[i])
+            vCentWeight+=1-flux[i]
+            veltest,lambdatest,Rtest=0,0,0
+            #Measure N_v (for column density)
+            N_v=N_v+(-1.*math.log(flux[i],math.e))
+            #EWmeasure
+            temp=temp+(1.0-(flux[i]/cont))*(lam[i]-lam[i-1])
+            #delta EW measure
+            tempA=tempA+((flux[i]/cont)*(lam[i]-lam[i-1])) #continuum
+            tempB=tempB+((lam[i]-lam[i-1])*(flux_err[i]/cont))**2 #fluxerror
+            #pulling out the lowest value and RMS
+            if flux[i] <= lowest:
+                #test_newlowest=(flux[i-3]+flux[i-2]+flux[i-1]+flux[i]+flux[i+1]+flux[i+2]+flux[i+3])/7.
+                #print test_newlowest
+                newlowest=np.mean(flux[i-low_avg:i+low_avg+1])
+            if newlowest <= lowest:
+                lowest=cp.copy(newlowest) ###
+                sigma_low=math.sqrt(np.sum((flux_err[i-low_avg:i+low_avg+1])**2)/(low_avg-1))
+                #sigma_low=math.sqrt((flux_err[i-3]**2+flux_err[i-2]**2+flux_err[i-1]**2
+                #                     +flux_err[i]**2+flux_err[i+1]**2+flux_err[i+2]**2+flux_err[i+3]**2)/6)
+                sigma_low=sigma_low/math.sqrt(low_avg)
+    for i in range(len(lam)):
+        if lam[i]>=limits[0] and lam[i]<=limits[1]:
+            dBALdev+=((1-flux[i])-(dBAL/pixWidth))**2
+    dBALdev=math.sqrt(dBALdev/pixWidth) #Standard Deviation of dBAL
+    EW=temp
+    tempA=(tempA*(deltaFc/cont))**2
+    deltaEW=math.sqrt(tempA+tempB)
+    #print 'N_CVI ='+str(round((3.7679e+14/(1549.055*0.286))*N_v))
+    #print 'Equivalent Width = '+str(round(EW,3))
+    #print 'Uncertainty continuum = '+str(round(tempA,3))
+    #print 'Uncertainty flux = '+str(round(tempB,3))
+    #print 'Total propagated uncertainty = '+str(round(deltaEW,3))
+    print ''
+    print 'Maximum Depth (dmax7, avg over 7 pixels):'+str(round(1-lowest,3))+' +/- '+str(round(sigma_low,3))
+    print 'The Centroid Velocity is:'+str(round((vCent/vCentWeight),3))
+    print 'Average BAL trough depth (dBAL):'+str(round(dBAL/pixWidth,3))+' +/- '+str(round((dBALdev/math.sqrt(pixWidth)),3))
+    print 'RETURN: '+str(round(EW,3))+' +/- '+str(round(deltaEW,3))
+    print '------------------------------------------------------------'
+    #return EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL
+    return EW,deltaEW,(1-lowest),sigma_low,(vCent/vCentWeight),(dBAL/pixWidth),(dBALdev/math.sqrt(pixWidth))
     #--------------------------------------------------------
 
 def BALcalc(name,vbal,C,vw,dvbal,ve,lam,flux,flux_err,zerr):
