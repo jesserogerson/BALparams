@@ -364,6 +364,7 @@ def EWcalc(name,vmax,vmin,lamMin,lamMax,lam,flux,flux_err):
     #what are the RLFs? will be used for
     limits=[lamMin,lamMax]
     parmFile='norm'+name+'.parm'
+    lowest=10.
     with open(parmFile,'r') as f:
         s=f.readlines()[-2]
     f.close()
