@@ -365,7 +365,7 @@ def EWcalc(name,vmax,vmin,lamMin,lamMax,lam,flux,flux_err):
     limits=[lamMin,lamMax]
     parmFile='norm'+name+'.parm'
     with open(parmFile,'r') as f:
-        s=f.readlines()[-1]
+        s=f.readlines()[-2]
     f.close()
     line=s.strip().split('=')[1]
     temp=map(float,line.split(','))
