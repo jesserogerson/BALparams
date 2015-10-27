@@ -430,7 +430,7 @@ def EWcalc(name,vmax,vmin,lamMin,lamMax,lam,flux,flux_err):
             vCentWeight+=1-flux[i]
             veltest,lambdatest,Rtest=0,0,0
             #Measure N_v (for column density)
-            N_v=N_v+(-1.*math.log(flux[i],math.e))
+            #N_v=N_v+(-1.*math.log(flux[i],math.e))
             #EWmeasure
             temp=temp+(1.0-(flux[i]/cont))*(lam[i]-lam[i-1])
             #delta EW measure
