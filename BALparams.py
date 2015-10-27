@@ -654,14 +654,10 @@ def lam2vel(spec,smooth,rest=civ_0):
 
 def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     '''Plotting the spectrum along with the window of BALnicity'''
-    print ''
-    print ''
-    print ''
-    print filename
-    print type(filename)
-    print ''
-    print ''
-    print ''
+    label=filename.split('_')
+    plotlabel=label[1]+' '+label[2]+' '+label[3]
+
+    print plotlabel
     plt.rc('text',usetex=True)
     plt.rc('font',family='sans-serif')
     fig = plt.figure()
@@ -683,7 +679,7 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     ax1.plot((1000,2000),(flim,flim),'k--')
     C=np.array(C)
     ax1.fill_between(spec[:,0],spec[:,1],flim, where=(C==1))
-    ax1.annotate(str(filename),xy=(1275,(ylimits[1]*0.1)))
+    ax1.annotate(plotlabel,xy=(1275,(ylimits[1]*0.1)))
 
     #calculating analogus x boundary
     minlambda=(xlimits[0]-civ_0)/civ_0
