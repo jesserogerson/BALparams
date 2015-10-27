@@ -654,6 +654,8 @@ def lam2vel(spec,smooth,rest=civ_0):
 
 def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     '''Plotting the spectrum along with the window of BALnicity'''
+    print filename
+    sys.exit()
     plt.rc('text',usetex=True)
     plt.rc('font',family='sans-serif')
     fig = plt.figure()
