@@ -656,8 +656,6 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     '''Plotting the spectrum along with the window of BALnicity'''
     label=filename.split('_')
     plotlabel=label[1]+' '+label[2]+' '+label[3]
-
-    print plotlabel
     plt.rc('text',usetex=True)
     plt.rc('font',family='sans-serif')
     fig = plt.figure()
