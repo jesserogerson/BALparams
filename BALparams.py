@@ -299,7 +299,7 @@ def BALnicity(**kwargs):
 
     #Step9 - Print Results
     if numTroughs>0:
-        for t in troughDict:
+        for t in sorted(troughDict):
             # Determine begin/end velocity (this is for plotting purposes mostly)
             start,finish=troughDict[t][0], troughDict[t][1]
             #Pull out the region of this specific trough
