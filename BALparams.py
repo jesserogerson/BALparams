@@ -327,7 +327,7 @@ def BALnicity(**kwargs):
             #NB: Right now this just appends the results, so if the file already exists,
             #it won't write over it-- it'll just add to it. Could be problematic.
             outfile = open(kwargs['writeout'], 'a')
-            s = '%s     %s      %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %8.3f      %8.3f  %5.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f     \n'%(label,typ,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin,lamMax,chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL)
+            s = '%s     %s     %7.2f %s      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f       %8.3f      %8.3f  %5.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f     \n'%(label,typ,mjd,t, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin,lamMax,chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL)
             outfile.write(s)
             outfile.close()
 
@@ -353,7 +353,7 @@ def BALnicity(**kwargs):
         #it won't write over it-- it'll just add to it. Could be problematic.
         label=objName[4:]
         outfile = open(kwargs['writeout'], 'a')
-        s = '%s      %s     %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f   %8.3f    %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f  \n'%(label,typ,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL)
+        s = '%s      %s     %7.2f %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f   %8.3f    %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f  \n'%(label,typ,mjd,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL)
         outfile.write(s)
         outfile.close()
     print '--------------------------------------------------------'
