@@ -181,6 +181,9 @@ HISTORY
                  - added a new function EWcalc(). It calculates EW, centroid
                    velocity, and average depth, of any trough identified.
                  - removed the CIV global change to 1545. don't like it.
+2015-12-02 - JAR - added an optional argument 'mjd' so that you can send along
+                   that info if you like. This is mostly for data collecting
+                   purposes, but could be used for many applications later on.
 --------------------------------------------------------------------------------
 '''
 import numpy as np
@@ -224,6 +227,7 @@ def BALnicity(**kwargs):
     #      - set individual kwargs to variable names (easier)
     zem=kwargs['zem']
     zerr=kwargs['zerr']
+    mjd=kwargs['mjd']
     lam_0=kwargs['lam']
     vlolimit=kwargs['vlo']
     vhilimit=kwargs['vhi']
@@ -718,6 +722,7 @@ parser.add_argument('file', type=str, help='/path/to/normalized/ASCII/spectrum')
 parser.add_argument('zem', type=float, help='redshift of target')
 parser.add_argument('-index', type=str, default='BI', help='The BALnicity Index to be measure (BI, BI_0, AIT, AI450)')
 parser.add_argument('-zerr', type=float, default=0.0, help='error in the redshift of the target (default to 0.0)')
+parser.add_argument('-mjd', type=float, default=0.0, help='The Mean Julian Date the spectrum was taken on (default to 0.0)')
 parser.add_argument('-lam', type=float, default=civ_0, help='rest wavelength of BAL ion (default to CIV)')
 parser.add_argument('-vlo', type=float, default=3000.0, help='low velocity cut-off (default to 3000.0 km/s)')
 parser.add_argument('-vhi', type=float, default=25000.0, help='high velocity cut-off (default to 25000.0 km/s)')
