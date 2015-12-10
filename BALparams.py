@@ -340,7 +340,7 @@ def BALnicity(**kwargs):
         outfile.write(s)
         outfile.close()
         #Step10 - plot results
-        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwargs['out'].split('.')[0]+'_'+typ+'.'+kwargs['out'].split('.')[1]),kwargs['pop'],C,troughDict)
+        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwargs['out'].split('.')[0]+'_'+mjd+'_'+typ+'.'+kwargs['out'].split('.')[1]),kwargs['pop'],C,troughDict)
 
     else:#the case where no troughs were found
         print 'BALnicity index = 0.0 +/- 0.0'
@@ -659,7 +659,7 @@ def lam2vel(spec,smooth,rest=civ_0):
 def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     '''Plotting the spectrum along with the window of BALnicity'''
     label=filename.split('_')
-    plotlabel=label[0]+' '+label[1]+' '+label[2]
+    plotlabel=label[0]+' '+label[1]+' '+label[2]+' '+label[3]
     #plt.rc('text',usetex=True)
     plt.rc('font',family='sans-serif')
     fig = plt.figure()
