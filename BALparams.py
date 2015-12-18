@@ -340,7 +340,7 @@ def BALnicity(**kwargs):
         outfile.write(s)
         outfile.close()
         #Step10 - plot results
-        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwargs['out'].split('.')[0]+'_'+str(mjd)+'_'+typ+'.'+kwargs['out'].split('.')[1]),kwargs['pop'],C,troughDict)
+        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwargs['out'].split('.')[0]+'_'+str(mjd)+'_'+typ+'.'+kwargs['out'].split('.')[1]),kwargs['pop'],C,troughDict,label)
 
     else:#the case where no troughs were found
         print 'BALnicity index = 0.0 +/- 0.0'
@@ -356,6 +356,7 @@ def BALnicity(**kwargs):
         s = '%s      %s     %7.2f %i      %8.5f      %5.5f      %5.1f     %8.3f     %5.3f      %5.3f      %8.3f     %5.3f      %5.3f      %8.3f   %8.3f    %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f  \n'%(label,typ,mjd,numTroughs, BI, errBI, BIround, vmax, verr, vmaxround, vmin, verr, vminround, lamMin, lamMax, chi2,EW,sigmaEW, dmax7, sigmaDmax7, v_cent, dBAL, sigmadBAL)
         outfile.write(s)
         outfile.close()
+        plotSpec(spectrum,vlolimit,vhilimit,zem,flim,(kwargs['out'].split('.')[0]+'_'+str(mjd)+'_'+typ+'.'+kwargs['out'].split('.')[1]),kwargs['pop'],C,troughDict,label)
     print '--------------------------------------------------------'
     return
     #--------------------------------------------------------
@@ -656,10 +657,21 @@ def lam2vel(spec,smooth,rest=civ_0):
     return spec
     #--------------------------------------------------------
 
-def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
+def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict,name):
     '''Plotting the spectrum along with the window of BALnicity'''
     label=filename.split('_')
     plotlabel=label[0]+' '+label[1]+' '+label[2]+' '+label[3]
+    #read in the parm file, get the RLFs
+    parmFile='norm'+name+'.parm'
+    with open(parmFile,'r') as f:
+        s=f.readlines()[-2]
+    f.close()
+    line=s.strip().split('=')[1]
+    temp=map(float,line.split(','))
+    RLF=[[temp[0],temp[1]]]
+    for t in range(2,len(temp)-1,2):
+        RLF.insert(0,[temp[t],temp[t+1]])
+
     #plt.rc('text',usetex=True)
     plt.rc('font',family='sans-serif')
     fig = plt.figure()
@@ -674,7 +686,8 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     ax1.set_xlabel('Rest-frame Wavelength \AA')
     #ax1.set_yticks((0.0,0.5,1.0,1.5,2.0,flim))
 
-    ax1.plot(spec[:,0],spec[:,1],'k',linewidth=1.0)
+    ax1.plot(spec[:,0],spec[:,1],'k',linewidth=1.0)#flux spec
+    ax1.plot(spec[:,0],spec[:,2],'k--',linewidth=1.0)#error spec
     #plotting the continuum at 1.0
     ax1.plot((1000,2000),(1,1),'k')
     #plotting the 0.9 limit
@@ -683,6 +696,10 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict):
     ax1.fill_between(spec[:,0],spec[:,1],flim, where=(C==1))
     ax1.annotate(plotlabel,xy=(1275,(ylimits[1]*0.1)))
 
+    #adding RLF spans
+    for w in RLF:
+        ax1.axvspan(w[0],w[1],facecolor='0.8',linewidth=0)
+        
     #calculating analogus x boundary
     minlambda=(xlimits[0]-civ_0)/civ_0
     maxlambda=(xlimits[1]-civ_0)/civ_0
