@@ -201,7 +201,7 @@ from scipy.ndimage.filters import convolve
 #global variables
 lightspeed=299792.458 #km/s
 civ_0=1548.202 #Ang
-#civ_0=1545.000 #Ang - this will allow us to catch 'associated' systems
+#civ_0=1555.000 #Ang - this will allow us to catch 'associated' systems
 siv_0=1396.76 #Ang
 
 #for validation later
@@ -699,7 +699,7 @@ def plotSpec(spec,vlolimit,vhilimit,zem,flim,filename,p,C,troughDict,name):
     #adding RLF spans
     for w in RLF:
         ax1.axvspan(w[0],w[1],facecolor='0.8',linewidth=0)
-        
+
     #calculating analogus x boundary
     minlambda=(xlimits[0]-civ_0)/civ_0
     maxlambda=(xlimits[1]-civ_0)/civ_0
