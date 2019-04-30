@@ -94,3 +94,7 @@ No Installation needed, just download and execute script.
 ### License
 
 see LICENSE.txt
+
+### DOI
+
+https://doi.org/10.5281/zenodo.2654869
